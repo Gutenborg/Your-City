@@ -1,0 +1,174 @@
+pipeline {
+  agent any
+
+  environment {
+    NODE_JS_INSTANCE = "Polymathic NodeJS"
+    NODE_JS_CONFIG = "f01be12f-b989-4132-9c14-7a2cac25c0fd"
+    SSH_CREDENTIALS = "polymathic_server"
+
+    API_DOCKER_CONTAINER_NAME = "your-city-api"
+    API_DOCKER_CONTAINER_PORT = "10011"
+    DB_DOCKER_CONTAINER_PORT = "10010"
+    
+    DEV_API_DOCKER_CONTAINER_NAME = "dev-your-city-api"
+    DEV_API_DOCKER_CONTAINER_PORT = "20011"
+    DEV_DB_DOCKER_CONTAINER_PORT = "20010"
+    WORKSPACE_NAME = "${GIT_BRANCH}_${GIT_COMMIT}"
+  }
+
+  stages {
+    stage ('Pre-Build') {
+      steps {
+        echo "Build Identity:"
+        
+        // Environment Variables
+        sh "echo JENKINS_VERSION: $JENKINS_VERSION"
+        sh "echo $JAVA_URL_VERSION"
+        sh "echo $JAVA_VERSION"
+        sh "echo $BUILD_DISPLAY_NAME"
+        sh "echo $BUILD_ID"
+        sh "echo $BUILD_TAG"
+        sh "echo $BUILD_NUMBER"
+        sh "echo $EXECUTOR_NUMBER"
+        sh "echo $LANG"
+        sh "echo $NODE_JS_INSTANCE"
+        sh "echo $NODE_LABELS"
+        sh "echo $NODE_NAME"
+        sh "echo $NODE_JS_CONFIG"
+        sh "echo $GIT_BRANCH"
+        sh "echo $GIT_COMMIT"
+        sh "echo $BRANCH_NAME"
+        sh "echo $SSH_CREDENTIALS"
+
+        sh "echo $API_DOCKER_CONTAINER_NAME"
+        sh "echo $API_DOCKER_CONTAINER_PORT"
+        sh "echo $DB_DOCKER_CONTAINER_PORT"
+
+        sh "echo $DEV_API_DOCKER_CONTAINER_NAME"
+        sh "echo $DEV_API_DOCKER_CONTAINER_PORT"
+        sh "echo $DEV_DB_DOCKER_CONTAINER_PORT"
+
+        // Unused Environment Variables
+        // sh "echo $JENKINS_SLAVE_AGENT_PORT"
+        // sh "echo $JENKINS_HOME"
+        // sh " echo $JENKINS_UC_EXPERIMENTAL"
+        // sh " echo $RUN_CHANGES_DISPLAY_URL"
+        // sh " echo $HOSTNAME"
+        // sh " echo $SHLVL"
+        // sh " echo $HUDSON_URL"
+        // sh " echo $JAVA_BASE_URL"
+        // sh " echo $HOME"
+        // sh " echo $BUILD_URL"
+        // sh " echo $HUDSON_COOKIE"
+        // sh " echo $JENKINS_SERVER_COOKIE"
+        // sh " echo $JENKINS_UC"
+        // sh " echo $WORKSPACE"
+        // sh " echo $REF"
+        // sh " echo $RUN_ARTIFACTS_DISPLAY_URL"
+        // sh " echo $STAGE_NAME"
+        // sh " echo $RUN_TESTS_DISPLAY_URL"
+        // sh " echo $JENKINS_INCREMENTALS_REPO_MIRROR"
+        // sh " echo $HUDSON_HOME"
+        // sh " echo $JOB_BASE_NAME"
+        // sh " echo $PATH"
+        // sh " echo $JENKINS_URL"
+        // sh " echo $JOB_URL"
+        // sh " echo $GIT_URL"
+        // sh " echo $JENKINS_NODE_COOKIE"
+        // sh " echo $RUN_DISPLAY_URL"
+        // sh " echo $HUDSON_SERVER_COOKIE"
+        // sh " echo $JOB_DISPLAY_URL"
+        // sh " echo $JOB_NAME"
+        // sh " echo $COPY_REFERENCE_FILE_LOG"
+        // sh " echo $PWD"
+        // sh " echo $JAVA_HOME"
+        // sh " echo $WORKSPACE_TMP"
+      }
+    }
+
+    stage('Build') {
+      when {
+        expression { GIT_BRANCH ==~ /(prod|dev)/ }
+      }
+
+      steps {
+        echo 'Starting Node'
+        
+        nodejs(nodeJSInstallationName: NODE_JS_INSTANCE, configId: NODE_JS_CONFIG) {
+          echo 'Installing Dependencies'
+          sh 'npm install'
+
+          echo 'Creating Build'
+          sh 'npm run build'
+        }
+      }
+    }
+
+    stage ('Pre-Deploy') {
+      when {
+        expression { GIT_BRANCH ==~ /(prod|dev)/ }
+      }
+
+      steps {
+        withCredentials([sshUserPrivateKey(credentialsId: SSH_CREDENTIALS, keyFileVariable: 'POLYMATHIC_SERVER_KEY', usernameVariable: 'POLYMATHIC_JENKINS')]) {
+          // Create a workspace
+          sh "ssh -i $POLYMATHIC_SERVER_KEY -o StrictHostKeyChecking=no $POLYMATHIC_JENKINS -C mkdir -p ./$WORKSPACE_NAME"
+
+          // Copy build artifacts to the workspace
+          sh "scp -i $POLYMATHIC_SERVER_KEY -o StrictHostKeyChecking=no -r ./build $POLYMATHIC_JENKINS:~/$WORKSPACE_NAME"
+          sh "scp -i $POLYMATHIC_SERVER_KEY -o StrictHostKeyChecking=no ./Dockerfile $POLYMATHIC_JENKINS:~/$WORKSPACE_NAME"
+          sh "scp -i $POLYMATHIC_SERVER_KEY -o StrictHostKeyChecking=no ./docker-compose.yml $POLYMATHIC_JENKINS:~/$WORKSPACE_NAME"
+          sh "scp -i $POLYMATHIC_SERVER_KEY -o StrictHostKeyChecking=no ./dev-docker-compose.yml $POLYMATHIC_JENKINS:~/$WORKSPACE_NAME"
+          sh "scp -i $POLYMATHIC_SERVER_KEY -o StrictHostKeyChecking=no ./package.json $POLYMATHIC_JENKINS:~/$WORKSPACE_NAME"
+        }
+      }
+    }
+
+    stage('Deploy') {
+      when {
+        expression { GIT_BRANCH ==~ /(prod|dev)/ }
+      }
+
+      parallel {
+        stage('Dev') {
+          when {
+            expression { GIT_BRANCH == "dev" }
+          }
+
+          steps {
+            withCredentials([sshUserPrivateKey(credentialsId: SSH_CREDENTIALS, keyFileVariable: 'POLYMATHIC_SERVER_KEY', usernameVariable: 'POLYMATHIC_JENKINS')]) {
+              // Build Docker image
+              sh "ssh -i $POLYMATHIC_SERVER_KEY -o StrictHostKeyChecking=no $POLYMATHIC_JENKINS -C docker-compose --project-name $DEV_API_DOCKER_CONTAINER_NAME -f ./$WORKSPACE_NAME/dev-docker-compose.yml up --build -d"
+            }
+          }
+        }
+
+        stage('Prod') {
+          when {
+            expression { GIT_BRANCH == "prod" }
+          }
+
+          steps {
+            withCredentials([sshUserPrivateKey(credentialsId: SSH_CREDENTIALS, keyFileVariable: 'POLYMATHIC_SERVER_KEY', usernameVariable: 'POLYMATHIC_JENKINS')]) {
+              // Build Docker image
+              sh "ssh -i $POLYMATHIC_SERVER_KEY -o StrictHostKeyChecking=no $POLYMATHIC_JENKINS -C docker-compose --project-name $API_DOCKER_CONTAINER_NAME -f ./$WORKSPACE_NAME/docker-compose.yml up --build -d"
+            }
+          }
+        }
+      }
+    }
+
+    stage('Clean Up') {
+      when {
+        expression { GIT_BRANCH ==~ /(prod|dev)/ }
+      }
+
+      steps {
+        withCredentials([sshUserPrivateKey(credentialsId: SSH_CREDENTIALS, keyFileVariable: 'POLYMATHIC_SERVER_KEY', usernameVariable: 'POLYMATHIC_JENKINS')]) {
+          // Clean up workspace
+          sh "ssh -i $POLYMATHIC_SERVER_KEY -o StrictHostKeyChecking=no $POLYMATHIC_JENKINS -C rm -r ./$WORKSPACE_NAME"
+        }
+      }
+    }
+  }
+}

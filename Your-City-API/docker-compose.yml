@@ -1,0 +1,26 @@
+version: '3.9'
+services:
+  api:
+    build: .
+    container_name: your-city-api
+    restart: always
+    networks:
+      - your-city-mongo
+    ports:
+      - '10011:3000'
+    depends_on:
+      - api_db
+  api_db:
+    image: mongo:4.4.4
+    container_name: your-city-api-db
+    restart: always
+    networks:
+      - your-city-mongo
+    ports:
+      - '10010:27017'
+    volumes:
+      - your-city-db:/data/db
+volumes:
+  your-city-db:
+networks:
+  your-city-mongo:

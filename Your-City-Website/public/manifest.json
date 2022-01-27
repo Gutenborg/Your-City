@@ -1,0 +1,25 @@
+{
+  "short_name": "YourCity",
+  "name": "YourCity.Directory",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "Logo-100.png",
+      "type": "image/png",
+      "sizes": "100x100"
+    },
+    {
+      "src": "Logo-500.png",
+      "type": "image/png",
+      "sizes": "500x500"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#7CAFF8",
+  "background_color": "#ffffff"
+}
