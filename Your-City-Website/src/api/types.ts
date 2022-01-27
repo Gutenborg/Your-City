@@ -101,8 +101,6 @@ export interface APIBusinessForm extends Pick<APIBusinessModel, 'name' | 'catego
 }
 
 export type APICity = APIMongooseDocument & APIBusinessModel;
-<<<<<<< Updated upstream
-=======
 
 export interface APISeatModel {
   branch: APIBranch;
@@ -145,4 +143,3 @@ export interface APISeatForm
 }
 
 export type APISeat = APIMongooseDocument & APISeatModel;
->>>>>>> Stashed changes
