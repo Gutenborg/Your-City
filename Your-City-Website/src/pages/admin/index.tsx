@@ -2,6 +2,7 @@ import React from 'react';
 import { Grid, Tabs, Tab, Typography } from '@material-ui/core';
 import TabPanel from './pageComponents/tabPanel';
 import BusinessTabPanel from './pageComponents/businessTabPanel';
+import SeatTabPanel from './pageComponents/seatTabPanel';
 
 function a11yProps(index: number) {
   return {
@@ -52,7 +53,7 @@ const AdminPage: React.FC = () => {
         </TabPanel>
 
         <TabPanel value={value} index={3}>
-          Item Three
+          <SeatTabPanel />
         </TabPanel>
       </Grid>
     </Grid>

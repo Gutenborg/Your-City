@@ -114,9 +114,16 @@ export interface APISeatModel {
   term: string;
 }
 
-export type APIBranch = 'legislative' | 'executive' | 'judicial';
-
-export type APIFillMethod = 'appointed' | 'elected';
+export interface APISeatForm
+  extends Pick<APISeat, 'name' | 'description' | 'term' | 'level' | 'branch' | 'lastFilled' | 'nextFill'> {
+  incumbentName: APIIncumbent['name'];
+  incumbentServingSince: APIIncumbent['servingSince'];
+  incumbentAge: string;
+  incumbentPartyAffiliation: APIIncumbent['partyAffiliation'];
+  incumbentContactEmail: APIContactInformation['email'];
+  incumbentContactPhone: APIContactInformation['phone'];
+  incumbentContactWebsites: string;
+}
 
 export interface APIIncumbent {
   name: string;
@@ -128,18 +135,8 @@ export interface APIIncumbent {
 
 export type APILevel = 'local' | 'county' | 'state' | 'federal';
 
-export interface APISeatForm
-  extends Pick<
-    APISeat,
-    'name' | 'description' | 'fillMethod' | 'term' | 'level' | 'branch' | 'lastFilled' | 'nextFill'
-  > {
-  incumbentName: APIIncumbent['name'];
-  incumbentServingSince: APIIncumbent['servingSince'];
-  incumbentAge: APIIncumbent['age'];
-  incumbentPartyAffiliation: APIIncumbent['partyAffiliation'];
-  incumbentContactEmail: APIContactInformation['email'];
-  incumbentContactPhone: APIContactInformation['phone'];
-  incumbentContactWebsites: string;
-}
+export type APIBranch = 'legislative' | 'executive' | 'judicial';
+
+export type APIFillMethod = 'appointed' | 'elected';
 
 export type APISeat = APIMongooseDocument & APISeatModel;

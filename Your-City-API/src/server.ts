@@ -5,7 +5,8 @@ import routes, { RouteEndPoints } from './routes';
 
 // Define Application Settings
 const PORT = '3000';
-const DB_CONNECTION = 'mongodb://api_db/your-city';
+// const DB_CONNECTION = 'mongodb://api_db/your-city';
+const DB_CONNECTION = 'mongodb://192.168.1.59:20010/your-city';
 
 // Create Express Server
 const app = express();
